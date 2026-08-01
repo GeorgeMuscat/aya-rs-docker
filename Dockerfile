@@ -1,26 +1,4 @@
 # syntax=docker/dockerfile:1
-FROM docker.io/rust:1.96.0-trixie AS buildbpftool
-
-RUN \
-	export DEBIAN_FRONTEND=noninteractive && \
-	apt-get update && \
-	apt-get -y install --no-install-recommends \
-		build-essential \
-		libelf-dev \
-		libz-dev \
-		libcap-dev \
-		libssl-dev \
-		clang llvm llvm-dev lld \
-		binutils-dev \
-		pkg-config && \
-	rm -rf /var/lib/apt/lists/*
-
-COPY bpftool /src
-RUN \
-	make -C /src/src clean && \
-	make -C /src/src -j "$(nproc)"
-
-
 FROM rust:1.96.0-trixie
 
 RUN \
@@ -29,9 +7,9 @@ RUN \
 	apt-get -y install --no-install-recommends \
 		libelf1 \
 		sudo \
+		bpftool \
 		llvm && \
 	rm -rf /var/lib/apt/lists/*
-
 
 # Create a non-root user and add them to the sudo group
 RUN useradd -ms /bin/bash devuser && usermod -aG sudo devuser
@@ -45,8 +23,6 @@ WORKDIR /home/devuser
 
 # This is used by cargo-generate
 ENV USER=devuser
-
-COPY --from=buildbpftool /src/src/bpftool /bin/bpftool
 
 RUN rustup install stable
 RUN rustup toolchain install nightly --component rust-src
